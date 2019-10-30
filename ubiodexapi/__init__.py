@@ -3,8 +3,11 @@
 import os
 
 from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_marshmallow import Marshmallow
 
-from .routes import setup_routes
+db = SQLAlchemy()
+ma = Marshmallow()
 
 def create_app(test_config=None):
 	# create and configure the app
@@ -12,8 +15,9 @@ def create_app(test_config=None):
 
 	# Configuration
 	if test_config is None:
+		app.config.from_object('config.Config')
 		# load the instance config, if it exists, when not testing
-		app.config.from_object(os.environ.get('APP_SETTINGS', 'config.Config'))
+		app.config.from_object(os.environ.get('APP_SETTINGS'))
 	else:
 		# load the test config if passed in
 		app.config.from_mapping(test_config)
@@ -24,8 +28,12 @@ def create_app(test_config=None):
 		os.makedirs(app.instance_path)
 	except OSError:
 		pass
+	
+	# Database
+	db.init_app(app)
+	ma.init_app(app)
 
-	# Routes
-	setup_routes(app)
+	with app.app_context():
+		from . import routes
 
 	return app
